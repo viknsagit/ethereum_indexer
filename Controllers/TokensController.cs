@@ -1,0 +1,46 @@
+﻿using Blockchain_Indexer.Blockchain.Contracts;
+using Blockchain_Indexer.Repositories;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.OutputCaching;
+using Microsoft.EntityFrameworkCore;
+
+namespace Blockchain_Indexer.Controllers;
+
+[Route("/api/[controller]")]
+public class TokensController : Controller
+{
+    [HttpGet("token")]
+    [OutputCache(Duration = 160)]
+    public async Task<IActionResult> GetTokenByHashAsync(string hash)
+    {
+        await using TransactionsRepository repo = new();
+        var token = await repo.Tokens.Where(t => t.Contract == hash).FirstOrDefaultAsync();
+        if (token == null)
+            return NotFound();
+        return Ok(token);
+    }
+
+    [HttpGet("tokens")]
+    [OutputCache(Duration = 165)]
+    public async Task<IActionResult> GetTokensHashesListAsync(int page = 1)
+    {
+        const int pageSize = 15;
+        if (page < 1) page = 1;
+
+        await using TransactionsRepository repo = new();
+        var tokens = await repo.Tokens
+            .Skip((page - 1) * pageSize)
+            .Take(pageSize)
+            .ToListAsync();
+
+        return Ok(tokens);
+    }
+
+    [HttpGet("tokensCount")]
+    public async Task<IActionResult> GetTokensCountAsync()
+    {
+        await using TransactionsRepository repo = new();
+        var count = await repo.Tokens.CountAsync();
+        return Ok(count);
+    }
+}
