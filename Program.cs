@@ -19,8 +19,11 @@ public class Program
         builder.Services.AddSingleton<ContractIndexer>();
         builder.Services.AddSingleton<PendingTransactionsStorage>();
         builder.Services.AddCors();
-        builder.Services.AddDbContext<TransactionsRepository>(options => options.UseNpgsql(builder.Configuration["databaseString"]));
-        
+        string connection = builder.Configuration.GetConnectionString("DefaultConnection");
+        builder.Services.AddDbContext<TransactionsRepository>(options => options.UseNpgsql(connection));
+        // Регистрация фабрики
+        builder.Services.AddSingleton<TransactionsRepositoryFactory>();
+
         var app = builder.Build();
 
         if (app.Environment.IsDevelopment())
@@ -34,8 +37,7 @@ public class Program
         app.UseOutputCache();
         app.MapControllers();
         app.UseCors(x => x.AllowAnyHeader().AllowAnyMethod().AllowAnyOrigin());
-
-        if (app.Configuration["ReindexNow"] is "true")
+        if (app.Configuration["reindex"] is "true")
         {
             await app.Services.GetService<Indexer>()!.ReindexBlocksAsync(0);
             await app.Services.GetService<ContractIndexer>()!.ReindexTokensFromDatabase();
@@ -44,10 +46,6 @@ public class Program
         await app.Services.GetService<Indexer>()!.NewBlockHeader();
         await app.Services.GetService<Indexer>()!.NewPendingTransactions();
 
-#if !DEBUG
-        await app.RunAsync($"http://0.0.0.0:{app.Configuration["Port"]}");
-#else
-        await app.RunAsync();
-#endif
+        await app.RunAsync($"http://0.0.0.0:{app.Configuration["port"]}");
     }
 }

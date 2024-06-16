@@ -10,11 +10,15 @@ namespace Blockchain_Indexer.Blockchain.Contracts;
 public class ContractIndexer
 {
     private readonly ILogger<ContractIndexer> _logger;
-    private readonly Web3 _web3 = new("https://node1.tmyblockchain.org/rpc");
+    private readonly Web3 _web3;
+    private readonly IConfiguration config;
+    private readonly TransactionsRepositoryFactory _repoFactory;
 
-    public ContractIndexer(ILogger<ContractIndexer> logger)
+    public ContractIndexer(ILogger<ContractIndexer> logger,IConfiguration config,TransactionsRepositoryFactory repoFactory)
     {
+        _repoFactory = repoFactory;
         _logger = logger;
+        this.config = config;
         Indexer.OnNewBlockCreated += BlockchainIndexer_OnNewBlockCreated;
     }
 
@@ -26,7 +30,7 @@ public class ContractIndexer
         var blockWithThx = await _web3.Eth.Blocks.GetBlockWithTransactionsByNumber.SendRequestAsync(block.Number);
         foreach (var tx in blockWithThx.Transactions)
         {
-            await using TransactionsRepository repo = new();
+            await using var repo = _repoFactory.Create();
             var tokenFrom = await repo.Contracts.FindAsync(tx.From);
             var tokenTo = await repo.Contracts.FindAsync(tx.To);
             if (tokenFrom != null)
@@ -50,7 +54,7 @@ public class ContractIndexer
     public async Task ReindexTokensFromDatabase()
     {
         _logger.LogInformation("Start token reindexing");
-        await using TransactionsRepository repo = new();
+        await using var repo = _repoFactory.Create();
         var lastContract = await repo.Contracts.OrderByDescending(x => x.Id).FirstOrDefaultAsync();
         for (var i = 1; i <= lastContract!.Id; i++)
         {
@@ -67,7 +71,7 @@ public class ContractIndexer
 
     private async Task<int> CheckTokenHolders(string token)
     {
-        await using TransactionsRepository repo = new();
+        await using var repo = _repoFactory.Create();
         var contract = _web3.Eth.GetContractHandler(token);
 
         var usersCount = await repo.Addresses.CountAsync();
@@ -94,7 +98,7 @@ public class ContractIndexer
 
     private async Task<int> CheckContractTransactions(string token)
     {
-        await using TransactionsRepository repo = new();
+        await using var repo = _repoFactory.Create();
         var fromCount = await repo.Transactions.Where(t => t.FromAddress == token).CountAsync();
         var toCount = await repo.Transactions.Where(t => t.ToAddress == token).CountAsync();
         _logger.LogInformation($"Token txs {toCount + fromCount}");
@@ -106,7 +110,7 @@ public class ContractIndexer
         var contract = _web3.Eth.GetContractHandler(address);
         try
         {
-            await using TransactionsRepository repo = new();
+            await using var repo = _repoFactory.Create();
 
             var name = await contract.GetFunction<ERC20_Functions.NameFunction>().CallAsync<string>();
             var symbol = await contract.GetFunction<ERC20_Functions.SymbolFunction>().CallAsync<string>();
@@ -130,9 +134,9 @@ public class ContractIndexer
         }
         catch (Exception)
         {
-            await using TransactionsRepository errorsRepository = new();
-            await errorsRepository.Errors.AddAsync(new ProcessingError(ErrorType.TokenProcessing, address));
-            await errorsRepository.SaveChangesAsync();
+            await using var repo = _repoFactory.Create();
+            await repo.Errors.AddAsync(new ProcessingError(ErrorType.TokenProcessing, address));
+            await repo.SaveChangesAsync();
             return false;
         }
     }

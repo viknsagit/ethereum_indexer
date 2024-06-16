@@ -23,12 +23,13 @@ namespace Blockchain_Indexer.Controllers
 
         [HttpGet("txsByBlock")]
         [OutputCache(Duration = 5600)]
-        public async Task<IActionResult> GetTransactionsByBlockNumber(int block, int pageIndex = 1)
+        public async Task<IActionResult> GetTransactionsByBlockNumber([FromServices] TransactionsRepositoryFactory repoFactory,int block, int pageIndex = 1)
         {
             if (pageIndex < 1)
                 pageIndex = 1;
 
-            await using TransactionsRepository repo = new();
+            await using var repo = repoFactory.Create();
+
             var txs = repo.Transactions
                 .Where(t => t.Block == block)
                 .OrderByDescending(t => t.Timestamp)
@@ -50,9 +51,10 @@ namespace Blockchain_Indexer.Controllers
         }
 
         [HttpGet("block")]
-        public async Task<IActionResult> GetBlockAsync([FromServices] IConfiguration config, int blockNumber)
+        public async Task<IActionResult> GetBlockAsync([FromServices] IConfiguration config,[FromServices] TransactionsRepositoryFactory repoFactory, int blockNumber)
         {
-            await using TransactionsRepository repo = new();
+            await using var repo = repoFactory.Create();
+
             var block = await repo.Blocks.FindAsync(blockNumber);
 
             if (block is not null) return Ok(block);

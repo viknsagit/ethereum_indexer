@@ -11,9 +11,10 @@ public class TokensController : Controller
 {
     [HttpGet("token")]
     [OutputCache(Duration = 160)]
-    public async Task<IActionResult> GetTokenByHashAsync(string hash)
+    public async Task<IActionResult> GetTokenByHashAsync([FromServices] TransactionsRepositoryFactory repoFactory,string hash)
     {
-        await using TransactionsRepository repo = new();
+                await using var repo = repoFactory.Create();
+
         var token = await repo.Tokens.Where(t => t.Contract == hash).FirstOrDefaultAsync();
         if (token == null)
             return NotFound();
@@ -22,12 +23,13 @@ public class TokensController : Controller
 
     [HttpGet("tokens")]
     [OutputCache(Duration = 165)]
-    public async Task<IActionResult> GetTokensHashesListAsync(int page = 1)
+    public async Task<IActionResult> GetTokensHashesListAsync([FromServices] TransactionsRepositoryFactory repoFactory,int page = 1)
     {
         const int pageSize = 15;
         if (page < 1) page = 1;
 
-        await using TransactionsRepository repo = new();
+                await using var repo = repoFactory.Create();
+
         var tokens = await repo.Tokens
             .Skip((page - 1) * pageSize)
             .Take(pageSize)
@@ -37,9 +39,10 @@ public class TokensController : Controller
     }
 
     [HttpGet("tokensCount")]
-    public async Task<IActionResult> GetTokensCountAsync()
+    public async Task<IActionResult> GetTokensCountAsync([FromServices] TransactionsRepositoryFactory repoFactory)
     {
-        await using TransactionsRepository repo = new();
+                await using var repo = repoFactory.Create();
+
         var count = await repo.Tokens.CountAsync();
         return Ok(count);
     }

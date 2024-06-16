@@ -4,7 +4,7 @@ using Nethereum.Web3;
 
 namespace Blockchain_Indexer;
 
-internal class Block()
+public class Block()
 {
     public Block(BlockWithTransactions block) : this()
     {

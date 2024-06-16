@@ -4,7 +4,7 @@ using Blockchain_Indexer.Blockhain;
 
 namespace Blockchain_Indexer;
 
-internal class ProcessingError()
+public class ProcessingError()
 {
     public ProcessingError(ErrorType type, string hash) : this()
     {

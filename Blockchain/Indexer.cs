@@ -27,11 +27,12 @@ internal class Indexer
     private readonly Web3 _web3;
     private bool _isIndexing;
     private readonly PendingTransactionsStorage _pendingTransactions;
-
     private readonly IConfiguration appConfig;
+    private readonly TransactionsRepositoryFactory _repositoryFactory;
 
-    public Indexer(ILogger<Indexer> logger,PendingTransactionsStorage pendingTransactionsStorage,IConfiguration appConfig)
+    public Indexer(ILogger<Indexer> logger,PendingTransactionsStorage pendingTransactionsStorage,IConfiguration appConfig, TransactionsRepositoryFactory repoFactory)
     {
+        _repositoryFactory = repoFactory;
         _logger = logger;
         _pendingTransactions = pendingTransactionsStorage;
         this.appConfig = appConfig;
@@ -99,7 +100,7 @@ internal class Indexer
                     catch (Exception ex)
                     {
                         _logger.LogError(ex, $"Error processing block {j}");
-                        await using TransactionsRepository repo = new();
+                        await using var repo = _repositoryFactory.Create();
                         await repo.Errors.AddAsync(new ProcessingError(ErrorType.BlockProcessing,
                             $"Error processing block {j}"));
                         await repo.SaveChangesAsync();
@@ -116,7 +117,7 @@ internal class Indexer
 
     private async Task ProcessBlockAsync(BlockWithTransactions block)
     {
-        await using TransactionsRepository repo = new();
+        await using var repo = _repositoryFactory.Create();
         var newBlock = new Block(block);
 
         var findedBlock = await repo.Blocks.FindAsync(int.Parse(block.Number.ToString()));
@@ -146,7 +147,7 @@ internal class Indexer
             return;
         }
 
-        await using TransactionsRepository repo = new();
+        await using var repo = _repositoryFactory.Create();
         //Взаимодействие с контрактом
         if (await repo.ContractContains(transaction.To))
         {
@@ -159,7 +160,7 @@ internal class Indexer
 
     private async Task TransferTransaction(Transaction transaction)
     {
-        await using TransactionsRepository repo = new();
+        await using var repo = _repositoryFactory.Create();
 
         await ProcessAddressType(transaction.From);
         await ProcessAddressType(transaction.To);
@@ -193,22 +194,22 @@ internal class Indexer
     private async Task ProcessAddressType(string address)
     {
         var type = await Transactions.Transaction.IsWalletOrContract(address,appConfig["rpc"]);
-        await using TransactionsRepository repository = new();
+        await using var repo = _repositoryFactory.Create();
         switch (type)
         {
             case AddressType.Wallet:
-                await repository.AddNewWallet(address);
+                await repo.AddNewWallet(address);
                 break;
 
             case AddressType.Contract:
-                await repository.AddNewContract(address);
+                await repo.AddNewContract(address);
                 break;
         }
     }
 
     private async Task ContractInteractionTransaction(Transaction transaction)
     {
-        await using TransactionsRepository repo = new();
+        await using var repo = _repositoryFactory.Create();
         var receipt = await _web3.Eth.Transactions.GetTransactionReceipt.SendRequestAsync(transaction.TransactionHash);
         if (receipt != null)
         {
@@ -241,7 +242,7 @@ internal class Indexer
 
     private async Task ContractDeploymentTransaction(Transaction transaction)
     {
-        await using TransactionsRepository repo = new();
+        await using var repo = _repositoryFactory.Create();
 
         var receipt = await _web3.Eth.Transactions.GetTransactionReceipt.SendRequestAsync(transaction.TransactionHash);
         if (receipt != null)
