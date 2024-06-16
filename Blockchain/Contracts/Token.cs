@@ -3,7 +3,7 @@ using System.ComponentModel.DataAnnotations.Schema;
 
 namespace Blockchain_Indexer.Blockchain.Contracts;
 
-internal class Token()
+public class Token()
 {
     public Token(string address, string name, string symbol, decimal supply, int holders, TokenType type) : this()
     {

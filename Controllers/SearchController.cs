@@ -13,18 +13,20 @@ namespace Blockchain_Indexer.Controllers
 
         [HttpGet("searchAll")]
         [OutputCache(Duration = 5600)]
-        public async Task<IActionResult> SearchAsync(string address)
+        public async Task<IActionResult> SearchAsync([FromServices] TransactionsRepositoryFactory repoFactory,string address)
         {
-            await using TransactionsRepository repo = new();
+                    await using var repo = repoFactory.Create();
+
             var result = await repo.SearchAsync(address);
             return result is null ? NotFound() : Ok(result);
         }
 
         [HttpGet("searchTransaction")]
         [OutputCache(Duration = 5600)]
-        public async Task<IActionResult> SearchTransaction(string txHash)
+        public async Task<IActionResult> SearchTransaction([FromServices] TransactionsRepositoryFactory repoFactory,string txHash)
         {
-            await using TransactionsRepository repo = new();
+                    await using var repo = repoFactory.Create();
+
             var result = await repo.Transactions.Where(t => t.Hash == txHash)
                 .FirstOrDefaultAsync();
             return result is null ? NotFound() : Ok(result);
@@ -32,9 +34,10 @@ namespace Blockchain_Indexer.Controllers
 
         [HttpGet("searchAddress")]
         [OutputCache(Duration = 5600)]
-        public async Task<IActionResult> SearchAddress(string address)
+        public async Task<IActionResult> SearchAddress([FromServices] TransactionsRepositoryFactory repoFactory,string address)
         {
-            await using TransactionsRepository repo = new();
+                    await using var repo = repoFactory.Create();
+
             var result = await repo.Addresses.Where(t => t.Address == address)
                 .FirstOrDefaultAsync();
             return result is null ? NotFound() : Ok(result);
@@ -43,9 +46,10 @@ namespace Blockchain_Indexer.Controllers
 
         [HttpGet("searchToken")]
         [OutputCache(Duration = 5600)]
-        public async Task<IActionResult> SearchToken(string address)
+        public async Task<IActionResult> SearchToken([FromServices] TransactionsRepositoryFactory repoFactory,string address)
         {
-            await using TransactionsRepository repo = new();
+                    await using var repo = repoFactory.Create();
+
             var result = await repo.Tokens.Where(t => t.Contract == address)
                 .FirstOrDefaultAsync();
             return result is null ? NotFound() : Ok(result);
@@ -53,9 +57,10 @@ namespace Blockchain_Indexer.Controllers
 
         [HttpGet("searchContract")]
         [OutputCache(Duration = 5600)]
-        public async Task<IActionResult> SearchContract(string address)
+        public async Task<IActionResult> SearchContract([FromServices] TransactionsRepositoryFactory repoFactory,string address)
         {
-            await using TransactionsRepository repo = new();
+                    await using var repo = repoFactory.Create();
+
             var result = await repo.Contracts.Where(t => t.Address == address)
                 .FirstOrDefaultAsync();
             return result is null ? NotFound() : Ok(result);

@@ -3,15 +3,18 @@ using Blockchain_Indexer.Blockchain.Addresses;
 using Blockchain_Indexer.Blockchain.Contracts;
 using Blockchain_Indexer.Blockchain.Transactions;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Infrastructure.Internal;
 using Nethereum.RPC.Eth.DTOs;
 using Nethereum.Web3;
+using Npgsql.EntityFrameworkCore.PostgreSQL.Infrastructure.Internal;
 using System.Globalization;
 
 using Transaction = Blockchain_Indexer.Blockchain.Transactions.Transaction;
 
 namespace Blockchain_Indexer.Repositories;
 
-internal class TransactionsRepository : DbContext
+public class TransactionsRepository : DbContext
 {
     public DbSet<ProcessingError> Errors => Set<ProcessingError>();
     public DbSet<Block> Blocks => Set<Block>();
@@ -23,9 +26,9 @@ internal class TransactionsRepository : DbContext
     public DbSet<TokenHolder> TokenHolders => Set<TokenHolder>();
     private DbSet<TransactionsHistoryDto> TransactionsHistory => Set<TransactionsHistoryDto>();
 
-    protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
+    public TransactionsRepository(DbContextOptions<TransactionsRepository> options)
+        : base(options)
     {
-        optionsBuilder.UseNpgsql("");
     }
 
     public async Task<List<TransactionsHistoryDto>> GetLastSevenDaysTransactionsHistoryAsync()

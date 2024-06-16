@@ -3,7 +3,7 @@ using System.ComponentModel.DataAnnotations.Schema;
 
 namespace Blockchain_Indexer.Blockchain.Addresses;
 
-internal class Wallet()
+public class Wallet()
 {
     public Wallet(string address) : this()
     {

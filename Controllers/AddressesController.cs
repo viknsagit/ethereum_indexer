@@ -11,10 +11,11 @@ public class AddressesController : Controller
 {
     [HttpGet("address")]
     [OutputCache(Duration = 60)]
-    public async Task<IActionResult> GetAddressAsync(string address)
+    public async Task<IActionResult> GetAddressAsync([FromServices] TransactionsRepositoryFactory repoFactory,string address)
     {
         address = address.ToLower();
-        await using TransactionsRepository repo = new();
+                await using var repo = repoFactory.Create();
+
         var wallet = await repo.Addresses.Where(x => x.Address == address).FirstOrDefaultAsync();
         if (wallet == null)
             return BadRequest();
@@ -31,12 +32,13 @@ public class AddressesController : Controller
     }
 
     [HttpGet("transactions")]
-    public async Task<IActionResult> GetAddressLatestTransactions(string address, int page = 1)
+    public async Task<IActionResult> GetAddressLatestTransactions([FromServices] TransactionsRepositoryFactory repoFactory,string address, int page = 1)
     {
         if (page < 1) page = 1;
 
         address = address.ToLower();
-        await using TransactionsRepository repo = new();
+        await using var repo = repoFactory.Create();
+
         var transactions = await repo.Transactions
             .Where(x => x.FromAddress == address || x.ToAddress == address)
             .OrderByDescending(t => t.Timestamp)
@@ -49,12 +51,13 @@ public class AddressesController : Controller
 
     [HttpGet("tokens")]
     [OutputCache(Duration = 30)]
-    public async Task<IActionResult> GetAddressTokensAsync(string address, int page = 1)
+    public async Task<IActionResult> GetAddressTokensAsync([FromServices] TransactionsRepositoryFactory repoFactory,string address, int page = 1)
     {
         if (page < 1) page = 1;
 
         address = address.ToLower();
-        await using TransactionsRepository repo = new();
+        await using var repo = repoFactory.Create();
+
         var tokens = await repo.TokenHolders
             .Where(x => x.Owner == address)
             .Skip((page - 1) * 15)
@@ -66,10 +69,11 @@ public class AddressesController : Controller
 
     [HttpGet("transactionCount")]
     [OutputCache(Duration = 30)]
-    public async Task<IActionResult> GetTransactionsCountAsync(string address)
+    public async Task<IActionResult> GetTransactionsCountAsync([FromServices] TransactionsRepositoryFactory repoFactory,string address)
     {
         address = address.ToLower();
-        await using TransactionsRepository repo = new();
+        await using var repo = repoFactory.Create();
+
         var txsFrom = await repo.Transactions.Where(x => x.FromAddress == address).CountAsync();
         var txsTo = await repo.Transactions.Where(x => x.ToAddress == address).CountAsync();
         return Ok(txsFrom + txsTo);

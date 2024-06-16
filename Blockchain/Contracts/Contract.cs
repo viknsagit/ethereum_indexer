@@ -3,7 +3,7 @@ using System.ComponentModel.DataAnnotations.Schema;
 
 namespace Blockchain_Indexer.Blockchain.Contracts;
 
-internal class Contract()
+public class Contract()
 {
     public Contract(string address, string creator, string hash) : this()
     {
